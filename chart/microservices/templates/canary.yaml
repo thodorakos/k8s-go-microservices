@@ -1,0 +1,65 @@
+{{- if .Values.features.canary.enabled }}
+{{- $g := index .Values.services "greeting-api" }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: greeting-api-v2
+  labels:
+    app: greeting-api-v2
+    tier: greeting
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: greeting-api-v2
+  template:
+    metadata:
+      labels:
+        app: greeting-api-v2
+        tier: greeting
+    spec:
+      containers:
+      - name: greeting-api-v2
+        image: "{{ $g.image }}:{{ $g.tag }}"
+        imagePullPolicy: {{ .Values.imagePullPolicy }}
+        env:
+        - name: PORT
+          value: "{{ $g.port }}"
+        - name: SERVICE_VERSION
+          value: v2
+        ports:
+        - containerPort: {{ $g.port }}
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: {{ $g.port }}
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: {{ $g.port }}
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+          limits:
+            cpu: 300m
+            memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: greeting-api-v2
+  labels:
+    app: greeting-api-v2
+spec:
+  selector:
+    app: greeting-api-v2
+  ports:
+  - port: {{ $g.port }}
+    targetPort: {{ $g.port }}
+{{- end }}

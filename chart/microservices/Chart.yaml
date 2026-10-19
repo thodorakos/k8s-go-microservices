@@ -1,0 +1,6 @@
+apiVersion: v2
+name: microservices
+description: hello-api calls greeting-api across the cluster via Kubernetes Services
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

@@ -1,0 +1,25 @@
+imagePullPolicy: IfNotPresent
+
+services:
+  greeting-api:
+    enabled: true
+    image: greeting-api
+    tag: local
+    port: 8080
+    replicas: 1
+    env:
+      SERVICE_VERSION: v1
+
+  hello-api:
+    enabled: true
+    image: hello-api
+    tag: local
+    port: 8080
+    replicas: 1
+    env:
+      GREETING_API_URL: http://greeting-api:8080
+
+features:
+  canary:
+    enabled: false
+    weight: 50

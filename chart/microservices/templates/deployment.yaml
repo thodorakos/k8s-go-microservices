@@ -1,0 +1,61 @@
+{{- range $name, $svc := .Values.services }}
+{{- if $svc.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    app: {{ $name }}
+spec:
+  replicas: {{ $svc.replicas }}
+  selector:
+    matchLabels:
+      app: {{ $name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $name }}
+    spec:
+      containers:
+      - name: {{ $name }}
+        image: "{{ $svc.image }}:{{ $svc.tag }}"
+        imagePullPolicy: {{ $.Values.imagePullPolicy }}
+        env:
+        - name: PORT
+          value: "{{ $svc.port }}"
+        {{- range $k, $v := $svc.env }}
+        - name: {{ $k }}
+          value: {{ $v | quote }}
+        {{- end }}
+        {{- if eq $name "hello-api" }}
+        {{- if $.Values.features.canary.enabled }}
+        - name: GREETING_API_V2_URL
+          value: "http://greeting-api-v2:{{ (index $.Values.services "greeting-api").port }}"
+        - name: CANARY_WEIGHT
+          value: "{{ $.Values.features.canary.weight }}"
+        {{- end }}
+        {{- end }}
+        ports:
+        - containerPort: {{ $svc.port }}
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: {{ $svc.port }}
+          initialDelaySeconds: 2
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: {{ $svc.port }}
+          initialDelaySeconds: 10
+          periodSeconds: 15
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+          limits:
+            cpu: 300m
+            memory: 128Mi
+{{- end }}
+{{- end }}
