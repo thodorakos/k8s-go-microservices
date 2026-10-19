@@ -1,7 +1,7 @@
 # k8s-go-microservices
 
-Two tiny Go microservices on Kubernetes, deployed with one Helm chart. It demonstrates the
-whole "hello world of microservices" story a junior engineer needs:
+Two tiny Go microservices on Kubernetes, deployed with one Helm chart. It covers
+the "hello world of microservices" a junior engineer needs:
 
 - 2 services built as containers (multi-stage Docker builds, Go stdlib only)
 - `hello-api` → `greeting-api` communication **over in-cluster Service DNS** (`http://greeting-api:8080`)
@@ -49,8 +49,8 @@ so adding a third service is a values change, not new YAML files.
 Turn the feature flag on with `--set features.canary.enabled=true` and the chart also deploys
 `greeting-api-v2` (same image, `SERVICE_VERSION=v2`, its own Service). `hello-api` then sends a
 percentage (`weight`) of its calls to v2 and reports `route: v2` / `version: v2` in the response.
-This is a simple, honest preview of how version-splitting can be done at the application level
-without any service mesh.
+It shows how version-splitting can be done at the application level, without a
+service mesh.
 
 ## Run it
 
@@ -68,7 +68,7 @@ minikube start -p p1-go-microsvc --driver=docker --cpus=2 --memory=1950 --contai
 ```
 
 (`--apiserver-ips/--apiserver-name` are a documented WSL2 workaround for uppercase hostnames
-breaking kubeadm cert SANs — minikube issue #9175.)
+breaking kubeadm cert SANs, minikube issue #9175.)
 
 ## Manual exploration after validation
 
@@ -113,7 +113,7 @@ deployment "hello-api" successfully rolled out
   greeting-api replied: {"service":"greeting-api","message":"pong","version":"v1",
                          "host":"greeting-api-79b67db45b-stfht"}
 
-==> Smoke test: hello-api /hello — proves hello-api called greeting-api in-cluster
+==> Smoke test: hello-api /hello: proves hello-api called greeting-api in-cluster
   hello-api replied: {"service":"hello-api","route":"v1","message":"pong","version":"v1",
                       "upstream_host":"greeting-api-79b67db45b-stfht"}
 
@@ -130,7 +130,7 @@ NAME                           READY
 deployment.apps/greeting-api   1/1
 deployment.apps/hello-api      1/1
 
-==> PASS ✅  all assertions green
+==> PASS ✅  all assertions green, cluster left running for manual poking
 ```
 
 ### Canary proof

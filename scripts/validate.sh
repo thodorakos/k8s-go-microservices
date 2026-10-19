@@ -43,7 +43,7 @@ PONG=$(curl -sSf --max-time 5 http://127.0.0.1:18081/ping) || die "curl greeting
 echo "$PONG" | grep -q '"message":"pong"' || die "greeting-api /ping body unexpected: $PONG"
 echo "  greeting-api replied: $PONG"
 
-say "Smoke test: hello-api /hello — proves hello-api called greeting-api in-cluster"
+say "Smoke test: hello-api /hello: proves hello-api called greeting-api in-cluster"
 K port-forward svc/hello-api 18080:8080 >/tmp/opencode/pf-hello.log 2>&1 &
 PF2=$!
 sleep 3
@@ -56,7 +56,7 @@ echo "$HELLO" | grep -q '"message":"pong"' || die "hello-api did not forward gre
 say "All cluster objects"
 K get all
 
-say "PASS ✅  all assertions green — cluster left running for manual poking"
+say "PASS ✅  all assertions green, cluster left running for manual poking"
 say "   kubectl --context $CTX -n $NS port-forward svc/hello-api 18080:8080"
 if [[ "${HELM_UNINSTALL:-0}" == "1" ]]; then
   helm uninstall "$RELEASE" -n "$NS"
