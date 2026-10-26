@@ -25,8 +25,8 @@ the "hello world of microservices" a junior engineer needs:
 
 ```
 services/          the two services; each: main.go + go.mod + Dockerfile
-chart/microservices/  the Helm chart that deploys both
-scripts/validate.sh   builds images, installs chart, asserts the service-to-service call
+chart/microservices/  the Helm chart that deploys both (+ monitoring when enabled)
+scripts/validate.sh   builds images, installs chart, asserts the service-to-service call and the monitoring chain
 ```
 
 ## How the chart works
@@ -81,11 +81,37 @@ helm get values -n demo microsvc
 helm delete -n demo microsvc
 ```
 
+## Monitoring: Prometheus + Grafana
+
+`monitoring.enabled: true` is the chart default, so the same release also deploys Prometheus v2.55.1 and Grafana v11.4.0 into the release namespace. There is no operator and no CRDs. Just two Deployments, two Services, a ConfigMap for each, plus the ServiceAccount and the namespaced Role Prometheus needs to discover the app pods.
+
+What the services expose:
+
+- `helloapi_http_requests_total` and `greetingapi_http_requests_total`: one request counter per service, bumped by a small middleware around `/hello` and `/ping`
+- `go_*` / `process_*` runtime metrics, which come free with `promhttp.Handler()`
+- everything is served under `/metrics`
+
+Prometheus finds pods by the `app: hello-api|greeting-api` label in its own namespace and scrapes every 10s. The TSDB is an emptyDir with 12h retention, so the data dies with the pod. Nothing here is worth persisting.
+
+Port-forward and look:
+
+```bash
+kubectl --context p1-go-microsvc -n demo port-forward svc/grafana 19102:3000
+kubectl --context p1-go-microsvc -n demo port-forward svc/prometheus 19092:9090
+```
+
+Grafana is at http://127.0.0.1:19102, login admin/admin. The provisioned "microservices" dashboard plots requests/s per pod and has an `up{job="microsvc"}` stat panel. Prometheus's own UI is at http://127.0.0.1:19092.
+
+`validate.sh` checks the whole chain: both Deployments roll out, Prometheus reports the `microsvc` targets as `up`, Grafana is healthy with the datasource and dashboard provisioned, and both counters have real samples.
+
 ## Teardown
 
 ```bash
 helm uninstall microsvc -n demo; minikube delete -p p1-go-microsvc
 ```
+
+Monitoring is part of the release, so `helm uninstall` removes Prometheus and
+Grafana too — nothing extra to clean up.
 
 ## Validation results
 

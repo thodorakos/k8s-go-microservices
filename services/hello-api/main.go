@@ -8,7 +8,19 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
+
+var httpReqs = promauto.NewCounter(prometheus.CounterOpts{
+	Name: "helloapi_http_requests_total", Help: "HTTP requests handled by hello-api",
+})
+
+func count(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) { httpReqs.Inc(); next(w, r) }
+}
 
 type upstreamReply struct {
 	Service string `json:"service"`
@@ -45,7 +57,8 @@ func main() {
 
 	client := &http.Client{Timeout: 3 * time.Second}
 
-	http.HandleFunc("/hello", func(w http.ResponseWriter, _ *http.Request) {
+	http.Handle("/metrics", promhttp.Handler())
+	http.HandleFunc("/hello", count(func(w http.ResponseWriter, _ *http.Request) {
 		url := v1URL
 		route := "v1"
 		if weight > 0 && rand.Intn(100) < weight {
@@ -66,7 +79,7 @@ func main() {
 			return
 		}
 		send(w, response{Service: "hello-api", Route: route, Message: u.Message, Version: u.Version, Upstream: u.Host})
-	})
+	}))
 	http.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))

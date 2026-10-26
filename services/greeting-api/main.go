@@ -5,6 +5,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type reply struct {
@@ -19,6 +23,14 @@ func send(w http.ResponseWriter, r reply) {
 	json.NewEncoder(w).Encode(r)
 }
 
+var httpReqs = promauto.NewCounter(prometheus.CounterOpts{
+	Name: "greetingapi_http_requests_total", Help: "HTTP requests handled by greeting-api",
+})
+
+func count(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) { httpReqs.Inc(); next(w, r) }
+}
+
 func main() {
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -30,9 +42,10 @@ func main() {
 	}
 	host, _ := os.Hostname()
 
-	http.HandleFunc("/ping", func(w http.ResponseWriter, _ *http.Request) {
+	http.Handle("/metrics", promhttp.Handler())
+	http.HandleFunc("/ping", count(func(w http.ResponseWriter, _ *http.Request) {
 		send(w, reply{Service: "greeting-api", Message: "pong", Version: version, Host: host})
-	})
+	}))
 	http.HandleFunc("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))

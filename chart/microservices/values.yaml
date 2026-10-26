@@ -19,6 +19,9 @@ services:
     env:
       GREETING_API_URL: http://greeting-api:8080
 
+monitoring:
+  enabled: true
+
 features:
   canary:
     enabled: false
